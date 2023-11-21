@@ -1,9 +1,9 @@
 #include <iostream>
 #include "grafo.h"
 #include "AutoElectrico.h"
-#include "WebApp.h"
 #include "NodoGrafo.h"
 #include "INodo.h"
+#include "GraphDiscover.h"
 #include <vector>
 
 using namespace std;
@@ -48,32 +48,71 @@ int main() {
     grafoCarretera.addNode(&mustang);
 
     grafoCarretera.addArc(&tesla, &nissan, 50);
-    grafoCarretera.addArc(&tesla, &mustang, 10);
-    grafoCarretera.addArc(&bmw, &polestar, 60);
-    grafoCarretera.addArc(&volvo, &mazda, 80);
+    grafoCarretera.addArc(&nissan, &mustang, 10);
+    grafoCarretera.addArc(&mustang, &volvo, 70);
+    grafoCarretera.addArc(&volvo, &rivian, 80);
+    grafoCarretera.addArc(&rivian, &tesla, 90);
+    grafoCarretera.addArc(&bmw, &audi, 80);
+    grafoCarretera.addArc(&audi, &polestar, 50);
+    grafoCarretera.addArc(&polestar, &jaguar, 20);
+    grafoCarretera.addArc(&jaguar, &hyundai, 30);
+    grafoCarretera.addArc(&hyundai, &bmw, 10);
+    grafoCarretera.addArc(&kia, &vw, 20);
+    grafoCarretera.addArc(&lucid, &kia, 40);
+    grafoCarretera.addArc(&lucid, &vw, 10);
+    grafoCarretera.addArc(&porsche, &lucid, 60);
+    grafoCarretera.addArc(&ford, &kia, 10);
+    grafoCarretera.addArc(&mazda, &ford, 60);
+    grafoCarretera.addArc(&lucid, &hyundai, 20);
+    grafoCarretera.addArc(&chevy, &porsche, 80);
+    grafoCarretera.addArc(&chevy, &ford, 10);
 
+    cout << "Path: " << endl;
+
+    vector<INodo*> camino = grafoCarretera.path(&tesla, &volvo);
+
+    if (!camino.empty()) {
+        for (INodo* nodo : camino) {
+            cout << nodo->getNombre() << endl;
+        }
+        cout << endl;
+    } else {
+        cout << "No se encontró un camino entre los nodos." << endl;
+    }
+
+    cout << "DeepPath: " << endl;
+
+    vector<INodo> deepPath = grafoCarretera.deepPath(&tesla);
+
+    for(INodo nodo : deepPath){
+        cout << nodo.getNombre() << endl;
+    }
+    cout << endl;
     
-    vector<vector<pair<INodo*, int>>> componentesConexasPeso = grafoCarretera.getConexas();
+    cout << "Componentes conexas: " << endl;
 
-    for (int i = 0; i < componentesConexasPeso.size(); i++)
-    {
-        for (int j = 0; j < componentesConexasPeso.at(i).size(); j++)
-        {
-            if (componentesConexasPeso.at(i).size() == 1)
-            {
-                break;
-            }
-            
-            if(j == 0){
-                cout << "================================" << endl;
-                cout << "Distancias registradas de " << 
-                componentesConexasPeso.at(i).at(j).first->getNombre() << ":" << endl;
-            }
-            else{
-                cout << componentesConexasPeso.at(i).at(j).first->getNombre() << " a " << 
-                componentesConexasPeso.at(i).at(j).second << " km" << endl;
+    vector<vector<INodo*>> compConexos = grafoCarretera.getCompConexos();
+
+    for(vector<INodo*> conexos: compConexos){
+        cout << "==============" << endl;
+        for(INodo* nodo: conexos){
+            cout << nodo->getNombre() << endl;
+        }
+    }
+
+    GraphDiscover descubridor;
+    vector<Path *> *caminos = descubridor.getPathsByWarshall(&chevy, &kia, &grafoCarretera);
+
+    // Mostrar los caminos encontrados
+    for (Path* path : *caminos) {
+        cout << "Camino encontrado: ";
+        for(int i = 0; i < path->path.size(); i++){
+            cout << path->path.at(i)->getNombre();
+            if(i < path->path.size()-1){
+                cout << " --> ";
             }
         }
+        cout << endl;
     }
 
     cout << "termino bien" << endl;

@@ -21,8 +21,8 @@ private:
         for (std::vector<NodoGrafo *>::iterator current = listaNodos.begin(); current != listaNodos.end(); ++current)
         {
             NodoGrafo *actual = (*current);
-            actual->procesado = false;
-            actual->visitado = false;
+            actual->setProcesado(false);
+            actual->setVisitado(false);
         }
     }
 
@@ -32,7 +32,7 @@ private:
         for (std::vector<NodoGrafo *>::iterator current = listaNodos.begin(); current != listaNodos.end(); ++current)
         {
             NodoGrafo *actual = (*current);
-            if (!actual->visitado)
+            if (!actual->isVisitado())
             {
                 result = actual;
                 break;
@@ -44,14 +44,14 @@ private:
     void deepPathRecursive(NodoGrafo *nodo, vector<NodoGrafo *> &result)
     {
         result.push_back(nodo);
-        nodo->visitado = true;
+        nodo->setVisitado(true);
 
         vector<Arco *> *adyacentes = nodo->getArcs();
         for (int indiceArcos = 0; indiceArcos < adyacentes->size(); ++indiceArcos)
         {
             Arco *arco = adyacentes->at(indiceArcos);
             NodoGrafo *adyacente = (NodoGrafo *)arco->getDestino();
-            if (!adyacente->visitado)
+            if (!adyacente->isVisitado())
             {
                 deepPathRecursive(adyacente, result);
             }
@@ -118,17 +118,20 @@ public:
         return hashNodos.at(pId);
     }
 
+    vector<NodoGrafo *> getListaNodos(){
+        return listaNodos;
+    }
+
     vector<INodo> deepPath(INodo *pOrigen)
-    { // Recorrido en profundidad
+    {
         vector<INodo> result;
-        resetNodes(); // Restablecer el estado de los nodos
+        resetNodes();
 
         NodoGrafo *nodoOrigen = getNodo(pOrigen->getId());
         if (nodoOrigen != nullptr) {
             vector<NodoGrafo*> resultNodes;
             deepPathRecursive(nodoOrigen, resultNodes);
 
-            // Convertir los resultados de NodoGrafo a INodo
             for (NodoGrafo* node : resultNodes) {
                 result.push_back(*node->getInfo());
             }
@@ -136,48 +139,30 @@ public:
 
         return result;
     }
+        
+    vector<vector<INodo*>> getCompConexos(){
+        vector<vector<INodo*>> compConexos;
+        resetNodes();
 
-    vector<vector<pair<INodo*, int>>> getConexas()
-    {
-        vector<vector<pair<INodo*, int>>> result;
-        resetNodes(); // Restablecer el estado de los nodos
-
-        for (NodoGrafo* nodo : listaNodos)
-        {
-            if (!nodo->visitado)
-            {
-                vector<pair<INodo*, int>> component;
-                component.push_back({nodo->getInfo(), 0});
-                ConexasSupport(nodo, component);
-                result.push_back(component);
+        for(NodoGrafo* nodo: listaNodos){
+            if(!nodo->isVisitado()){
+                vector<INodo*> conexos;
+                conexos.push_back(nodo->getInfo());
+                getConexosNodo(nodo, &conexos);
+                compConexos.push_back(conexos);
             }
         }
-
-        return result;
+        return compConexos;
     }
 
-    void ConexasSupport(NodoGrafo* nodo, vector<pair<INodo*, int>>& component)
-    {
-        nodo->visitado = true;
+    void getConexosNodo(NodoGrafo* nodo, vector<INodo*>* conexos){
+        nodo->setVisitado(true);
         for (Arco* arco : *(nodo->getArcs()))
         {
-            NodoGrafo* adyacente = (NodoGrafo*)arco->getDestino();
-            component.push_back({adyacente->getInfo(), arco->getPeso()});    
-            ConexasSupport(adyacente, component);
-        }
-    }
-
-    
-    void Deep_first_search(NodoGrafo* nodo, vector<INodo*>& componenteConexa) {
-        nodo->visitado = true;
-        componenteConexa.push_back(nodo->getInfo());
-
-        vector<Arco*> *adyacentes = nodo->getArcs();
-        for (int i = 0; i < adyacentes->size(); i++) {
-            Arco* arco = adyacentes->at(i);
-            NodoGrafo* adyacente = static_cast<NodoGrafo*>(arco->getDestino());
-            if (!adyacente->visitado) {
-                Deep_first_search(adyacente, componenteConexa);
+            NodoGrafo* destino = (NodoGrafo*)arco->getDestino();
+            if(!destino->isVisitado()){
+                conexos->push_back(destino->getInfo());
+                getConexosNodo(destino, conexos);
             }
         }
     }
@@ -192,7 +177,7 @@ public:
 
         NodoGrafo *puntoPartida = this->getNodo(pOrigen->getId());
         nodosProcesados.push(puntoPartida);
-        puntoPartida->procesado = true;
+        puntoPartida->setProcesado(true);
 
         do
         {
@@ -201,7 +186,7 @@ public:
                 NodoGrafo *actual = nodosProcesados.front();
                 nodosProcesados.pop();
 
-                actual->visitado = true;
+                actual->setVisitado(true);
                 visitados++;
                 result.push_back(actual->getInfo());
 
@@ -211,10 +196,10 @@ public:
                 {
                     Arco *arco = adyacentes->at(indiceArcos);
                     NodoGrafo *adyacente = (NodoGrafo *)arco->getDestino();
-                    if (!adyacente->procesado)
+                    if (!adyacente->isProcesado())
                     {
                         nodosProcesados.push(adyacente);
-                        adyacente->procesado = true;
+                        adyacente->setProcesado(true);
                     }
                 }
             }
@@ -223,17 +208,57 @@ public:
             {
                 puntoPartida = this->findNotVisited();
                 nodosProcesados.push(puntoPartida);
-                puntoPartida->procesado = true;
+                puntoPartida->setProcesado(true);
             }
         } while (visitados < this->getSize());
 
         return result;
     }
 
-    vector<INodo> path(INodo *pOrigen, INodo *pDestino)
-    { // debe retornar un camino, el primero que encuentre estre el nodo oriegn y destino
-        // en caso de que no haya camino, result se retorna vacío
-        vector<INodo> result;
+    vector<INodo*> path(INodo *pOrigen, INodo *pDestino) {
+        vector<INodo*> result;
+        resetNodes();
+
+        NodoGrafo *origen = this->getNodo(pOrigen->getId());
+        NodoGrafo *destino = this->getNodo(pDestino->getId());
+
+        if (origen == nullptr || destino == nullptr) {
+            return result;
+        }
+
+        queue<pair<NodoGrafo*, vector<INodo*>>> nodosPorRecorrer;
+        vector<INodo*> path;
+        path.push_back(origen->getInfo());
+        nodosPorRecorrer.push({origen, path});
+
+        while (!nodosPorRecorrer.empty()) {
+            auto current = nodosPorRecorrer.front();
+            nodosPorRecorrer.pop();
+            NodoGrafo *nodoActual = current.first;
+            vector<INodo*> pathActual = current.second;
+
+            if (nodoActual == destino) {
+                // Se encontró un camino hacia el nodo destino
+                result = pathActual;
+                break;
+            }
+
+            for (Arco *arco : *(nodoActual->getArcs())) {
+                NodoGrafo *adyacente = static_cast<NodoGrafo*>(arco->getDestino());
+
+                if (!adyacente->isVisitado()) {
+
+                    adyacente->setVisitado(true);
+
+                    // Copiar el camino actual y agregar el nodo adyacente
+                    vector<INodo*> nuevoCamino = pathActual;
+                    nuevoCamino.push_back(adyacente->getInfo());
+
+                    // Agregar el nodo adyacente junto con el nuevo camino a la cola
+                    nodosPorRecorrer.push({adyacente, nuevoCamino});
+                }
+            }
+        }
 
         return result;
     }
@@ -243,7 +268,7 @@ public:
         for (std::vector<NodoGrafo *>::iterator current = listaNodos.begin(); current != listaNodos.end(); ++current)
         {
             NodoGrafo *actual = (*current);
-            cout << actual->getInfo()->getId() << " tiene " << actual->getArcs()->size() << endl;
+            cout << actual->getInfo()->getNombre() << " tiene " << actual->getArcs()->size() << endl;
         }
     }
 };
